@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Breath Counter – Kumbhaka Prāṇāyāma</title>
+  <style>
+    :root {
+      --bg: #0b1220; --panel:#111a2b; --text:#e8eefc; --muted:#90a4c7; --accent:#7cc5ff; --good:#30d158; --warn:#ffd60a; --bad:#ff453a;
+    }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); display: grid; min-height: 100svh; place-items: center; }
+    .app { width: min(680px, 95vw); padding: 20px; background: var(--panel); border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    h1 { margin: 0 0 6px; font-size: 20px; letter-spacing:.5px }
+    .sub { color: var(--muted); font-size: 12px; margin-bottom: 16px }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    label { font-size: 12px; color: var(--muted); display:block; margin-bottom:6px }
+    input[type="number"], select { width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid #22304a; background: #0e1728; color: var(--text); font-size: 14px; }
+    .phase { text-align: center; padding: 16px; border-radius: 16px; background: #0e1728; border:1px solid #22304a }
+    .phase h2 { margin: 6px 0 4px; font-weight: 700; font-size: 18px }
+    .time { font-size: 42px; font-variant-numeric: tabular-nums; margin: 2px 0 10px; }
+    .next { color: var(--muted); font-size:12px }
+    .controls { display:flex; gap:10px; margin: 14px 0 6px; }
+    button { flex:1; padding: 12px 14px; border-radius: 12px; border: 0; font-weight: 600; cursor: pointer; }
+    .primary { background: var(--accent); color:#06223b }
+    .ghost { background: #0e1728; color: var(--text); border:1px solid #22304a; }
+    .danger { background: #1f0b10; color: #ffd1d1; border:1px solid #512028 }
+    .stats { display:flex; gap:16px; flex-wrap:wrap; margin-top: 8px; }
+    .stat { flex:1; min-width: 140px; background: #0e1728; border:1px solid #22304a; border-radius: 12px; padding:10px }
+    .stat .lbl { color: var(--muted); font-size:12px }
+    .stat .val { font-size:20px; margin-top:4px; font-variant-numeric: tabular-nums }
+    .note { font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.45 }
+    .bad { color: var(--bad) }
+    .warn { color: var(--warn) }
+    .good { color: var(--good) }
+    .toggle { display:flex; align-items:center; gap:8px; }
+    .footer { font-size: 11px; color: var(--muted); text-align:center; margin-top: 10px }
+    .big { font-size: 58px; text-transform: uppercase; letter-spacing: .8px }
+  </style>
+</head>
+<body>
+  <main class="app" role="application" aria-label="Kumbhaka Prāṇāyāma timer">
+    <h1>Breath Counter – Kumbhaka</h1>
+    <div class="sub">Adjust your cycle, tap Start, and follow the prompt. Works offline in your browser.</div>
+
+    <div class="grid" style="margin-bottom:12px">
+      <div>
+        <label for="preset">Preset</label>
+        <select id="preset">
+          <option value="">— Custom —</option>
+          <option value="4,4,4,4">Box (4-4-4-4)</option>
+          <option value="4,7,8,0">4-7-8 (relax)</option>
+          <option value="4,16,8,0">Kumbhaka light (4-16-8)</option>
+          <option value="5,20,10,0">Kumbhaka+ (5-20-10)</option>
+          <option value="6,24,12,0">Advanced (6-24-12)</option>
+        </select>
+      </div>
+      <div class="toggle">
+        <input type="checkbox" id="vibrate" checked aria-label="Vibration cues" />
+        <label for="vibrate">Vibrate</label>
+        <input type="checkbox" id="sound" checked aria-label="Sound cues" style="margin-left:14px"/>
+        <label for="sound">Sound</label>
+        <input type="checkbox" id="autoflow" checked aria-label="Auto repeat cycles" style="margin-left:14px"/>
+        <label for="autoflow">Auto</label>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Inhale (sec)</label>
+        <input type="number" id="inh" min="1" max="60" step="1" value="4" />
+      </div>
+      <div>
+        <label>Hold (sec)</label>
+        <input type="number" id="hold1" min="0" max="120" step="1" value="16" />
+      </div>
+      <div>
+        <label>Exhale (sec)</label>
+        <input type="number" id="exh" min="1" max="90" step="1" value="8" />
+      </div>
+      <div>
+        <label>Hold after exhale (sec)</label>
+        <input type="number" id="hold2" min="0" max="120" step="1" value="0" />
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <div>
+        <label>Target cycles</label>
+        <input type="number" id="target" min="1" max="999" value="10" />
+      </div>
+      <div>
+        <label>Countdown before start (sec)</label>
+        <input type="number" id="countin" min="0" max="10" value="3" />
+      </div>
+    </div>
+
+    <section class="phase" aria-live="polite" aria-atomic="true" style="margin-top:14px">
+      <div id="phaseName" class="big">Ready</div>
+      <div id="phaseTime" class="time">00</div>
+      <div class="next"><span id="nextLabel">—</span></div>
+    </section>
+
+    <div class="controls">
+      <button id="start" class="primary">Start</button>
+      <button id="pause" class="ghost">Pause</button>
+      <button id="reset" class="danger">Reset</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="lbl">Cycles completed</div><div id="cycles" class="val">0</div></div>
+      <div class="stat"><div class="lbl">Cycle length</div><div id="cycleLen" class="val">— s</div></div>
+      <div class="stat"><div class="lbl">Elapsed</div><div id="elapsed" class="val">00:00</div></div>
+    </div>
+
+    <p class="note">
+      <strong>Safety:</strong> Practice breath retention gently. Avoid long holds if you have <span class="warn">high/low blood pressure</span>, cardiac/respiratory issues, are <span class="warn">pregnant</span>, or feel dizzy. Stop immediately if uncomfortable. Start with modest ratios like <span class="good">4‑4‑4‑4</span> or <span class="good">4‑7‑8</span> and build gradually. Consider guidance from a qualified teacher.
+    </p>
+
+    <div class="footer">Tip: Add to your phone’s Home screen to use it like an app. Your settings are saved locally.</div>
+  </main>
+
+  <script>
+    // --- Utilities
+    const $ = sel => document.querySelector(sel);
+    const inputs = { inh: $('#inh'), hold1: $('#hold1'), exh: $('#exh'), hold2: $('#hold2'), target: $('#target'), countin: $('#countin') };
+    const toggles = { vibrate: $('#vibrate'), sound: $('#sound'), autoflow: $('#autoflow') };
+    const labels = { phase: $('#phaseName'), time: $('#phaseTime'), next: $('#nextLabel'), cycles: $('#cycles'), cycleLen: $('#cycleLen'), elapsed: $('#elapsed') };
+    const buttons = { start: $('#start'), pause: $('#pause'), reset: $('#reset') };
+
+    const preset = $('#preset');
+
+    // Web Audio API for cues
+    let audioCtx = null;
+    function beep(dur=0.06, freq=880) {
+      if (!toggles.sound.checked) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = 'sine'; o.frequency.value = freq; o.connect(g); g.connect(audioCtx.destination);
+        g.gain.value = 0.12; o.start();
+        setTimeout(()=>{ o.stop(); }, dur*1000);
+      } catch (_) {}
+    }
+
+    function vib(p=[40]) {
+      if (!toggles.vibrate.checked) return; if (!navigator.vibrate) return;
+      navigator.vibrate(p);
+    }
+
+    function fmt(s) { return String(s).padStart(2,'0'); }
+    function mmss(sec){ sec=Math.max(0,sec|0); const m=(sec/60)|0; const s=sec%60; return `${fmt(m)}:${fmt(s)}`; }
+
+    function save(){
+      const cfg = {
+        inh: +inputs.inh.value, hold1:+inputs.hold1.value, exh:+inputs.exh.value, hold2:+inputs.hold2.value,
+        target:+inputs.target.value, countin:+inputs.countin.value,
+        vibrate: toggles.vibrate.checked, sound: toggles.sound.checked, autoflow: toggles.autoflow.checked
+      };
+      localStorage.setItem('kumbhaka_cfg', JSON.stringify(cfg));
+    }
+    function load(){
+      const raw = localStorage.getItem('kumbhaka_cfg');
+      if (!raw) return; try { const c=JSON.parse(raw);
+        inputs.inh.value=c.inh; inputs.hold1.value=c.hold1; inputs.exh.value=c.exh; inputs.hold2.value=c.hold2;
+        inputs.target.value=c.target; inputs.countin.value=c.countin;
+        toggles.vibrate.checked=c.vibrate; toggles.sound.checked=c.sound; toggles.autoflow.checked=c.autoflow;
+      } catch(_){}
+    }
+
+    // --- State machine
+    const PHASES = ['Inhale','Hold','Exhale','Hold'];
+    let schedule = [];
+    let iPhase = 0, tRemain = 0, cycles = 0, running=false, tid=null, startedAt=null, elapsedBase=0;
+
+    function makeSchedule(){
+      const i=+inputs.inh.value, h1=+inputs.hold1.value, e=+inputs.exh.value, h2=+inputs.hold2.value;
+      schedule = [ ['Inhale', i], ['Hold', h1], ['Exhale', e], ['Hold', h2] ].filter(([_,d])=>d>0);
+      const cyc = i+h1+e+h2; labels.cycleLen.textContent = `${cyc} s`;
+    }
+
+    function nextPhase() {
+      if (schedule.length===0) { makeSchedule(); }
+      iPhase = (iPhase+1) % schedule.length;
+      const [name, dur] = schedule[iPhase];
+      tRemain = dur;
+      labels.phase.textContent = name;
+      const next = schedule[(iPhase+1)%schedule.length]?.[0] || '—';
+      labels.next.textContent = `Next: ${next}`;
+      beep(0.07, 990); vib([60]);
+      if (iPhase===0) { // new cycle
+        cycles += 1; labels.cycles.textContent = cycles;
+        if (cycles >= +inputs.target.value && !toggles.autoflow.checked) {
+          stop(); return;
+        }
+      }
+    }
+
+    function tick(){
+      if (!running) return;
+      if (tRemain<=0) { nextPhase(); }
+      labels.time.textContent = fmt(tRemain);
+      tRemain -= 1;
+      const elapsed = elapsedBase + ((Date.now()-startedAt)|0);
+      labels.elapsed.textContent = mmss(elapsed/1000);
+      tid = setTimeout(tick, 1000);
+    }
+
+    function start(){
+      save(); makeSchedule();
+      if (!running) {
+        running = true; startedAt = Date.now();
+        if (labels.phase.textContent==='Ready') {
+          const ci = +inputs.countin.value;
+          if (ci>0) {
+            labels.phase.textContent='Get Ready'; tRemain=ci; labels.next.textContent='Next: Inhale'; labels.time.textContent=fmt(tRemain);
+            const ciTick = () => {
+              if (!running) return; if (tRemain<=0) { iPhase = schedule.length-1; nextPhase(); tick(); return; }
+              beep(0.05, 660); vib([30]);
+              labels.time.textContent = fmt(tRemain); tRemain -= 1; tid = setTimeout(ciTick, 1000);
+            };
+            ciTick(); return;
+          } else { iPhase = schedule.length-1; nextPhase(); }
+        }
+        tick();
+      }
+    }
+
+    function pause(){
+      if (!running) return; running=false; clearTimeout(tid); elapsedBase += (Date.now()-startedAt); labels.phase.textContent += ' (paused)';
+    }
+    function stop(){ running=false; clearTimeout(tid); iPhase=0; tRemain=0; labels.phase.textContent='Done'; labels.time.textContent='00'; }
+    function reset(){ running=false; clearTimeout(tid); iPhase=0; tRemain=0; cycles=0; labels.cycles.textContent='0'; labels.phase.textContent='Ready'; labels.time.textContent='00'; labels.next.textContent='—'; labels.elapsed.textContent='00:00'; elapsedBase=0; }
+
+    // Events
+    buttons.start.addEventListener('click', start);
+    buttons.pause.addEventListener('click', pause);
+    buttons.reset.addEventListener('click', reset);
+
+    preset.addEventListener('change', e=>{
+      if (!e.target.value) return; const [a,b,c,d]=e.target.value.split(',').map(x=>+x);
+      inputs.inh.value=a; inputs.hold1.value=b; inputs.exh.value=c; inputs.hold2.value=d; save(); makeSchedule();
+    });
+
+    Object.values(inputs).forEach(inp=> inp.addEventListener('change', ()=>{ save(); makeSchedule(); }));
+    Object.values(toggles).forEach(inp=> inp.addEventListener('change', save));
+
+    load(); makeSchedule();
+  </script>
+</body>
+</html>
