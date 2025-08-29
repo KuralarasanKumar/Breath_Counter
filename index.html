@@ -348,7 +348,8 @@
         margin-bottom: 4px;
       }
 
-      input[type="number"], select {
+      input[type="number"],
+      select {
         padding: 8px 10px;
         font-size: 13px;
       }
@@ -467,10 +468,12 @@
 
     <!-- Daily Inspiration - Collapsible -->
     <div style="margin: 16px 0;">
-      <div id="quoteToggle" style="cursor: pointer; font-size: 12px; color: var(--accent); margin-bottom: 8px; user-select: none;">
+      <div id="quoteToggle"
+        style="cursor: pointer; font-size: 12px; color: var(--accent); margin-bottom: 8px; user-select: none;">
         ✨ Daily Inspiration (tap to toggle)
       </div>
-      <div id="dailyQuote" style="display: none; padding: 12px; background: rgba(255, 255, 255, 0.1); border-radius: 8px; border-left: 3px solid var(--accent); font-style: italic; color: var(--muted); font-size: 13px; line-height: 1.4;">
+      <div id="dailyQuote"
+        style="display: none; padding: 12px; background: rgba(255, 255, 255, 0.1); border-radius: 8px; border-left: 3px solid var(--accent); font-style: italic; color: var(--muted); font-size: 13px; line-height: 1.4;">
         Loading inspiration...
       </div>
     </div>
@@ -490,7 +493,8 @@
       <div class="toggle">
         <input type="checkbox" id="vibrate" checked aria-label="Vibration cues" />
         <label for="vibrate">Vibrate</label>
-        <button id="testVib" style="margin-left: 8px; padding: 2px 6px; font-size: 10px; background: rgba(124, 197, 255, 0.2); border: 1px solid rgba(124, 197, 255, 0.4); border-radius: 4px; color: var(--text); cursor: pointer;">Test</button>
+        <button id="testVib"
+          style="margin-left: 8px; padding: 2px 6px; font-size: 10px; background: rgba(124, 197, 255, 0.2); border: 1px solid rgba(124, 197, 255, 0.4); border-radius: 4px; color: var(--text); cursor: pointer;">Test</button>
         <input type="checkbox" id="sound" checked aria-label="Sound cues" style="margin-left:14px" />
         <label for="sound">Sound</label>
       </div>
@@ -665,11 +669,11 @@
     function setupQuoteToggle() {
       const quoteToggle = $('#quoteToggle');
       const dailyQuote = $('#dailyQuote');
-      
+
       // Check if quote should be visible (saved state or default to hidden on mobile)
       const isMobile = window.innerWidth <= 768;
       const quoteVisible = localStorage.getItem('quoteVisible') === 'true' || !isMobile;
-      
+
       if (quoteVisible) {
         dailyQuote.style.display = 'block';
         quoteToggle.textContent = '✨ Daily Inspiration (tap to hide)';
@@ -677,7 +681,7 @@
         dailyQuote.style.display = 'none';
         quoteToggle.textContent = '✨ Daily Inspiration (tap to show)';
       }
-      
+
       quoteToggle.addEventListener('click', () => {
         const isVisible = dailyQuote.style.display !== 'none';
         if (isVisible) {
@@ -896,12 +900,12 @@
         console.log('Vibration disabled in settings');
         return;
       }
-      
+
       if (!navigator.vibrate) {
         console.log('Vibration API not supported');
         return;
       }
-      
+
       try {
         const result = navigator.vibrate(p);
         console.log('Vibration triggered:', p, 'Result:', result);
@@ -1102,6 +1106,24 @@
     buttons.pause.addEventListener('click', pause);
     buttons.reset.addEventListener('click', reset);
 
+    // Test vibration button
+    $('#testVib').addEventListener('click', () => {
+      console.log('Testing vibration...');
+      if (!navigator.vibrate) {
+        alert('Vibration not supported on this device/browser');
+        return;
+      }
+      if (!toggles.vibrate.checked) {
+        alert('Please enable vibration first');
+        return;
+      }
+      const result = vib([100, 50, 100]);
+      console.log('Vibration test result:', result);
+      if (!result) {
+        alert('Vibration failed - check browser settings or try HTTPS');
+      }
+    });
+
     preset.addEventListener('change', e => {
       if (!e.target.value) return; const [a, b, c, d] = e.target.value.split(',').map(x => +x);
       inputs.inh.value = a; inputs.hold1.value = b; inputs.exh.value = c; inputs.hold2.value = d; save(); makeSchedule();
@@ -1116,7 +1138,7 @@
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === 'suspended') await audioCtx.resume();
         console.log('✅ User clicked - audio enabled');
-        
+
         // Test vibration if enabled
         if (toggles.vibrate.checked && navigator.vibrate) {
           const vibResult = navigator.vibrate(50);
