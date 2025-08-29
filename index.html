@@ -26,10 +26,12 @@
       margin: 0;
       background: url('meditation%20image.jpg') center/cover no-repeat, var(--bg);
       color: var(--text);
-      display: grid;
-      place-items: center;
-      min-height: 100svh;
-      place-items: center;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      /* don't lock to screen height */
+      padding: 10px 0;
+      /* add some top/bottom padding */
     }
 
     .app {
@@ -603,6 +605,68 @@
 
     const preset = $('#preset');
 
+    // Keep-screen-on helpers
+    let wakeLock = null;        // Screen Wake Lock handle
+    let keepAliveVid = null;    // Fallback hidden video (for iOS/unsupported)
+
+    async function requestWakeLock() {
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+          console.log('🔒 Wake Lock acquired');
+
+          // If the tab becomes visible again, re-request (some browsers release it)
+          wakeLock.addEventListener('release', () => {
+            console.log('🔓 Wake Lock released');
+          });
+          document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState === 'visible' && running && !wakeLock) {
+              try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) { }
+            }
+          });
+        } catch (e) {
+          console.log('Wake Lock error, falling back:', e);
+          startFallbackVideo();
+        }
+      } else {
+        // No Wake Lock support → fallback
+        startFallbackVideo();
+      }
+    }
+
+    function releaseWakeLock() {
+      if (wakeLock) {
+        wakeLock.release().catch(() => { }).finally(() => { wakeLock = null; });
+      }
+      stopFallbackVideo();
+    }
+
+    // Fallback: a tiny muted inline video keeps iOS from sleeping
+    function startFallbackVideo() {
+      if (keepAliveVid) return;
+      keepAliveVid = document.createElement('video');
+      keepAliveVid.setAttribute('playsinline', '');
+      keepAliveVid.muted = true;
+      keepAliveVid.loop = true;
+      keepAliveVid.style.position = 'fixed';
+      keepAliveVid.style.width = '1px';
+      keepAliveVid.style.height = '1px';
+      keepAliveVid.style.opacity = '0';
+      keepAliveVid.style.pointerEvents = 'none';
+      // Create a minimal data URL video as fallback
+      keepAliveVid.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMQAAAAhmdHlwaXNvbQAAAgBpc29taXNvMmF2YzEAAAAoaGRscgAAAAAAAAAAdmlkZQAAAAAAAAAAAAAAAFZpZGVvSGFuZGxlcgAAAAEoZW5jYQAAANdwcmZsAAAAAAAAAAAAAAAAgAAAAABgZ2VjdWUAAAABAAAAFAP//wNjbWVyZCAAAAcAAAAEAAAABAAAABMgZ2VjdWUAAAABAAAAFAP//wNjYWl3BQAAAgAAAAEAAAEaAAAAAA==';
+      document.body.appendChild(keepAliveVid);
+      keepAliveVid.play().catch(e => console.log('fallback video play error:', e));
+    }
+
+    function stopFallbackVideo() {
+      if (!keepAliveVid) return;
+      keepAliveVid.pause();
+      keepAliveVid.src = '';
+      keepAliveVid.remove();
+      keepAliveVid = null;
+    }
+
     // --- Daily Quotes by Swami Vivekananda
     const vivekanandaQuotes = [
       "Take up one idea. Make that one idea your life; dream of it; think of it; live on that idea. Let the brain, the body, muscles, nerves, every part of your body be full of that idea, and just leave every other idea alone. This is the way to success, and this is the way great spiritual giants are produced. — Swami Vivekananda",
@@ -1007,6 +1071,9 @@
       running = true;
       startedAt = Date.now();
 
+      // Keep screen on during session
+      requestWakeLock();
+
       // reset counters when starting from Ready/Done
       if (labels.phase.textContent === 'Ready' || labels.phase.textContent === 'Done') {
         iPhase = 0; cycles = 0; elapsedBase = 0;
@@ -1058,6 +1125,7 @@
     } function pause() {
       if (!running) return;
       running = false;
+      releaseWakeLock();
       clearTimeout(tid);
       if (preId) { clearTimeout(preId); preId = null; }
       if (countdownId) { clearTimeout(countdownId); countdownId = null; }
@@ -1067,6 +1135,7 @@
 
     function stop() {
       running = false;
+      releaseWakeLock();
       clearTimeout(tid);
       if (preId) { clearTimeout(preId); preId = null; }
       if (countdownId) { clearTimeout(countdownId); countdownId = null; }
@@ -1090,6 +1159,7 @@
 
     function reset() {
       running = false;
+      releaseWakeLock();
       clearTimeout(tid);
       if (preId) { clearTimeout(preId); preId = null; }
       if (countdownId) { clearTimeout(countdownId); countdownId = null; }
