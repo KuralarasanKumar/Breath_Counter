@@ -27,6 +27,7 @@
       background: url('meditation%20image.jpg') center/cover no-repeat, var(--bg);
       color: var(--text);
       display: grid;
+      place-items: center;
       min-height: 100svh;
       place-items: center;
     }
@@ -105,8 +106,17 @@
     }
 
     .next {
-      color: var(--muted);
-      font-size: 12px
+      color: #ffffff;
+      background: rgba(124, 197, 255, 0.3);
+      font-size: 14px;
+      margin-top: 8px;
+      min-height: 20px;
+      display: block;
+      text-align: center;
+      font-weight: 500;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(124, 197, 255, 0.5);
     }
 
     .controls {
@@ -296,26 +306,19 @@
 
 <body>
   <main class="app" role="application" aria-label="Kumbhaka Prāṇāyāma timer">
-    <!-- Hidden audio elements for better control -->
-    <audio id="omAudioElement" preload="auto" loop>
-      <source src="OM MANTRA MEDITATION 11 Minutes.mp3" type="audio/mpeg">
-    </audio>
+    <!-- Audio element for temple bell only -->
     <audio id="bellAudioElement" preload="auto">
       <source src="Temple bell sound - village.mp3" type="audio/mpeg">
+      <source src="Temple%20bell%20sound%20-%20village.mp3" type="audio/mpeg">
     </audio>
 
     <h1>Breath Counter – Kumbhaka</h1>
     <div class="sub">Adjust your cycle, tap Start, and follow the prompt. Works offline in your browser.</div>
 
-    <!-- Music Controls -->
-    <div class="music-controls">
-      <button id="musicToggle" class="ghost" style="flex: none; padding: 6px 12px; font-size: 12px;">🎵 Om
-        Music</button>
-      <div class="volume-control">
-        <span style="font-size: 12px; color: var(--muted);">Vol:</span>
-        <input type="range" id="volumeSlider" min="0" max="100" value="30">
-        <span id="volumeDisplay" style="font-size: 12px; color: var(--muted); min-width: 25px;">30%</span>
-      </div>
+    <!-- Daily Inspiration -->
+    <div id="dailyQuote"
+      style="margin: 16px 0; padding: 12px; background: rgba(255, 255, 255, 0.1); border-radius: 8px; border-left: 3px solid var(--primary); font-style: italic; color: var(--muted); font-size: 13px; line-height: 1.4;">
+      Loading inspiration...
     </div>
 
     <div class="grid" style="margin-bottom:12px">
@@ -335,10 +338,6 @@
         <label for="vibrate">Vibrate</label>
         <input type="checkbox" id="sound" checked aria-label="Sound cues" style="margin-left:14px" />
         <label for="sound">Sound</label>
-        <input type="checkbox" id="autoflow" checked aria-label="Auto repeat cycles" style="margin-left:14px" />
-        <label for="autoflow">Auto</label>
-        <input type="checkbox" id="music" checked aria-label="Background Om music" style="margin-left:14px" />
-        <label for="music">Music</label>
       </div>
     </div>
 
@@ -402,25 +401,21 @@
     <!-- Progress Tracking Section -->
     <div class="progress-section">
       <div class="progress-header">
-        <h3 style="margin: 0; font-size: 14px;">Daily Progress</h3>
+        <h3 style="margin: 0; font-size: 14px;">Progress Tracking</h3>
         <button class="toggle-progress" id="toggleProgress">View History</button>
       </div>
       <div class="progress-stats">
         <div class="progress-stat">
-          <div class="label">Today</div>
-          <div class="value" id="todaySessions">0</div>
+          <div class="label">This Week</div>
+          <div class="value" id="weekCycles">0</div>
         </div>
         <div class="progress-stat">
-          <div class="label">This Week</div>
-          <div class="value" id="weekSessions">0</div>
+          <div class="label">All Time</div>
+          <div class="value total-sessions" id="totalCycles">0</div>
         </div>
         <div class="progress-stat">
           <div class="label">Streak</div>
           <div class="value streak" id="currentStreak">0 days</div>
-        </div>
-        <div class="progress-stat">
-          <div class="label">Total</div>
-          <div class="value total-sessions" id="totalSessions">0</div>
         </div>
       </div>
       <div id="progressDetails"
@@ -443,98 +438,130 @@
     // --- Utilities
     const $ = sel => document.querySelector(sel);
     const inputs = { inh: $('#inh'), hold1: $('#hold1'), exh: $('#exh'), hold2: $('#hold2'), target: $('#target'), countin: $('#countin') };
-    const toggles = { vibrate: $('#vibrate'), sound: $('#sound'), autoflow: $('#autoflow'), music: $('#music') };
+    const toggles = { vibrate: $('#vibrate'), sound: $('#sound') };
     const labels = { phase: $('#phaseName'), time: $('#phaseTime'), next: $('#nextLabel'), cycles: $('#cycles'), cycleLen: $('#cycleLen'), elapsed: $('#elapsed') };
     const buttons = { start: $('#start'), pause: $('#pause'), reset: $('#reset') };
 
     const preset = $('#preset');
 
-    // --- Om Music System (Simplified)
-    let omAudio = null;
-    let templeBellAudio = null;
-    let musicPlaying = false;
+    // --- Daily Quotes by Swami Vivekananda
+    const vivekanandaQuotes = [
+      "Take up one idea. Make that one idea your life; dream of it; think of it; live on that idea. Let the brain, the body, muscles, nerves, every part of your body be full of that idea, and just leave every other idea alone. This is the way to success, and this is the way great spiritual giants are produced. — Swami Vivekananda",
+      "You have to grow from the inside out. None can teach you, none can make you spiritual. There is no other teacher but your own soul. — Swami Vivekananda",
+      "In a conflict between the heart and the brain, follow your heart. — Swami Vivekananda",
+      "In a day, when you don't come across any problems - you can be sure that you are travelling in a wrong path — Swami Vivekananda",
+      "The great secret of true success, of true happiness, is this: the man or woman who asks for no return, the perfectly unselfish person, is the most successful. — Swami Vivekananda",
+      "All power is within you; you can do anything and everything. Believe in that, do not believe that you are weak; do not believe that you are half-crazy lunatics, as most of us do nowadays. You can do any thing and everything, without even the guidance of any one. Stand up and express the divinity within you. — Swami Vivekananda",
+      "The greatest religion is to be true to your own nature. Have faith in yourselves. — Swami Vivekananda",
+      "The greatest sin is to think yourself weak — Swami Vivekananda",
+      "Anything that makes weak - physically, intellectually and spiritually, reject it as poison. — Swami Vivekananda",
+      "Dare to be free, dare to go as far as your thought leads, and dare to carry that out in your life. — Swami Vivekananda",
+      "We are what our thoughts have made us; so take care about what you think. Words are secondary. Thoughts live; they travel far. — Swami Vivekananda",
+      "Arise, awake, stop not till the goal is reached. — Swami Vivekananda",
+      "They alone live, who live for others. — Swami Vivekananda",
+      "Be not Afraid of anything. You will do Marvelous work. it is Fearlessness that brings Heaven even in a moment. — Swami Vivekananda",
+      "All love is expansion, all selfishness is contraction. Love is therefore the only law of life. He who loves lives, he who is selfish is dying. Therefore love for love's sake, because it is the only law of life, just as you breathe to live. — Swami Vivekananda",
+      "You cannot believe in God until you believe in yourself. — Swami Vivekananda",
+      "Neither seek nor avoid, take what comes. — Swami Vivekananda",
+      "Feel nothing, know nothing, do nothing, have nothing, give up all to God, and say utterly, 'Thy will be done.' We only dream this bondage. Wake up and let it go. — Swami Vivekananda",
+      "Strength is Life, Weakness is Death. Expansion is Life, Contraction is Death. Love is Life, Hatred is Death. — Swami Vivekananda",
+      "Comfort is no test of truth. Truth is often far from being comfortable. — Swami Vivekananda",
+      "The fire that warms us can also consume us; it is not the fault of the fire. — Swami Vivekananda",
+      "Learn Everything that is Good from Others, but bring it in, and in your own way absorb it; do not become others. — Swami Vivekananda",
+      "Do one thing at a Time, and while doing it put your whole Soul into it to the exclusion of all else. — Swami Vivekananda",
+      "Was there ever a more horrible blasphemy than the statement that all the knowledge of God is confined to this or that book? How dare men call God infinite, and yet try to compress Him within the covers of a little book! — Swami Vivekananda",
+      "Whatever you think that you will be. If you think yourself weak, weak you will be; if you think yourself strong, you will be — Swami Vivekananda",
+      "All differences in this world are of degree, and not of kind, because oneness is the secret of everything. — Swami Vivekananda",
+      "We are responsible for what we are, and whatever we wish ourselves to be, we have the power to make ourselves. If what we are now has been the result of our own past actions, it certainly follows that whatever we wish to be in the future can be produced by our present actions; so we have to know how to act. — Swami Vivekananda",
+      "Each work has to pass through these stages—ridicule, opposition, and then acceptance. Those who think ahead of their time are sure to be misunderstood. — Swami Vivekananda",
+      "Ask nothing; want nothing in return. Give what you have to give; it will come back to you, but do not think of that now. — Swami Vivekananda",
+      "A fool may buy all the books in the world, and they will be in his library; but he will be able to read only those that he deserves to. — Swami Vivekananda"
+    ];
 
-    function initializeAudio() {
-      console.log('Initializing audio...');
-      // Get audio elements from DOM
-      omAudio = document.getElementById('omAudioElement');
-      templeBellAudio = document.getElementById('bellAudioElement');
+    function getDailyQuote() {
+      const today = new Date().toDateString();
+      const savedQuote = localStorage.getItem('dailyQuote');
+      const savedDate = localStorage.getItem('dailyQuoteDate');
 
-      if (omAudio) {
-        omAudio.volume = 0.3;
-        omAudio.addEventListener('error', (e) => console.log('Om audio error:', e));
-        omAudio.addEventListener('canplaythrough', () => console.log('Om audio ready'));
+      if (savedDate === today && savedQuote) {
+        return savedQuote;
       }
+
+      // Generate a consistent quote for today based on date
+      const dateHash = today.split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+      }, 0);
+
+      const quoteIndex = Math.abs(dateHash) % vivekanandaQuotes.length;
+      const quote = vivekanandaQuotes[quoteIndex];
+
+      localStorage.setItem('dailyQuote', quote);
+      localStorage.setItem('dailyQuoteDate', today);
+
+      return quote;
+    }
+
+    function displayDailyQuote() {
+      const quote = getDailyQuote();
+      $('#dailyQuote').innerHTML = `"${quote}"`;
+    }
+
+    // --- Simple Audio System (Bell only)
+    let templeBellAudio = null;
+
+    // Initialize audio when page loads
+    document.addEventListener('DOMContentLoaded', function () {
+      console.log('DOM loaded, initializing temple bell audio...');
+      templeBellAudio = document.getElementById('bellAudioElement');
 
       if (templeBellAudio) {
         templeBellAudio.volume = 0.4;
-        templeBellAudio.addEventListener('error', (e) => console.log('Bell audio error:', e));
-        templeBellAudio.addEventListener('canplaythrough', () => console.log('Bell audio ready'));
-      }
-    }
+        console.log('Temple bell audio element found and volume set');
 
-    function startOmMusic() {
-      console.log('Starting Om music...');
-      if (!omAudio) initializeAudio();
-
-      if (omAudio && toggles.music.checked) {
-        const volume = $('#volumeSlider').value / 100;
-        omAudio.volume = volume;
-
-        const playPromise = omAudio.play();
-        if (playPromise) {
-          playPromise.then(() => {
-            musicPlaying = true;
-            $('#musicToggle').textContent = '🔇 Stop Music';
-            console.log('Om music playing successfully');
-          }).catch(error => {
-            console.log('Failed to start Om music:', error);
-          });
-        }
-      }
-    }
-
-    function stopOmMusic() {
-      console.log('Stopping Om music...');
-      if (omAudio && musicPlaying) {
-        omAudio.pause();
-        omAudio.currentTime = 0;
-        musicPlaying = false;
-        $('#musicToggle').textContent = '🎵 Om Music';
-        console.log('Om music stopped');
-      }
-    }
-
-    function toggleOmMusic() {
-      if (musicPlaying) {
-        stopOmMusic();
+        templeBellAudio.addEventListener('loadeddata', () => {
+          console.log('Temple bell loaded successfully');
+        });
+        templeBellAudio.addEventListener('error', (e) => {
+          console.error('Temple bell failed to load:', e);
+        });
       } else {
-        startOmMusic();
+        console.error('Temple bell audio element not found!');
       }
-    }
 
-    // Temple bell sound function
-    function playTempleBell() {
-      console.log('Playing temple bell...');
-      if (!templeBellAudio) initializeAudio();
+      // Display daily quote
+      displayDailyQuote();
 
-      if (templeBellAudio && toggles.sound.checked) {
-        templeBellAudio.currentTime = 1.5; // Skip first 1.5 seconds
-        templeBellAudio.play().catch(e => console.log('Bell play error:', e));
-      }
-    }
-
-    // Volume control
-    $('#volumeSlider').addEventListener('input', (e) => {
-      const volume = e.target.value;
-      $('#volumeDisplay').textContent = volume + '%';
-
-      if (omAudio) {
-        omAudio.volume = volume / 100;
-      }
+      // Initialize other components
+      load(); save(); makeSchedule(); updateProgressDisplay();
     });
 
-    $('#musicToggle').addEventListener('click', toggleOmMusic);
+    function playTempleBell() {
+      console.log('Playing temple bell...');
+      if (templeBellAudio && toggles.sound.checked) {
+        templeBellAudio.currentTime = 1.5; // Skip first 1.5 seconds
+
+        // Set up event listener to stop playback 1.5 seconds before the end
+        const stopBeforeEnd = () => {
+          if (templeBellAudio.currentTime >= templeBellAudio.duration - 1.5) {
+            templeBellAudio.pause();
+            templeBellAudio.removeEventListener('timeupdate', stopBeforeEnd);
+          }
+        };
+
+        templeBellAudio.addEventListener('timeupdate', stopBeforeEnd);
+
+        templeBellAudio.play()
+          .then(() => console.log('Temple bell played'))
+          .catch(e => console.log('Bell play error:', e));
+      }
+    }
+
+    // Volume control (removed since no music)
+    // $('#volumeSlider').addEventListener('input', (e) => {
+    //   const volume = e.target.value;
+    //   $('#volumeDisplay').textContent = volume + '%';
+    // });
 
     // --- Progress Tracking System
     function getTodayKey() {
@@ -575,15 +602,15 @@
       const today = getTodayKey();
       const thisWeek = getWeekKey();
 
-      // Today's sessions
-      const todaySessions = sessions.filter(s => s.date === today).length;
-
-      // This week's sessions
-      const currentWeekSessions = sessions.filter(s => {
+      // This week's total cycles
+      const currentWeekCycles = sessions.filter(s => {
         const sessionDate = new Date(s.date);
         const sessionWeek = getWeekKey();
         return sessionWeek === thisWeek;
-      }).length;
+      }).reduce((total, session) => total + (session.cycles || 0), 0);
+
+      // Total cycles from all time
+      const totalCycles = sessions.reduce((total, session) => total + (session.cycles || 0), 0);
 
       // Calculate streak
       let streak = 0;
@@ -604,10 +631,9 @@
       }
 
       return {
-        todaySessions,
-        weekSessions: currentWeekSessions,
+        weekCycles: currentWeekCycles,
+        totalCycles,
         streak,
-        totalSessions: sessions.length,
         sessions
       };
     }
@@ -615,10 +641,9 @@
     function updateProgressDisplay() {
       const stats = getProgressStats();
 
-      $('#todaySessions').textContent = stats.todaySessions;
-      $('#weekSessions').textContent = stats.weekSessions;
+      $('#weekCycles').textContent = stats.weekCycles;
       $('#currentStreak').textContent = stats.streak + ' days';
-      $('#totalSessions').textContent = stats.totalSessions;
+      $('#totalCycles').textContent = stats.totalCycles;
     }
 
     function showProgressDetails() {
@@ -648,11 +673,34 @@
 
     $('#toggleProgress').addEventListener('click', showProgressDetails);
 
-    // Web Audio API for cues (disabled during breathing - only at completion)
+    // Web Audio API for breathing phase cues
     let audioCtx = null;
     function beep(dur = 0.06, freq = 880) {
-      // No sound during breathing phases - only at completion
-      return;
+      if (!toggles.sound.checked) return;
+
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        osc.type = 'sine';
+
+        gain.gain.setValueAtTime(0, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + dur);
+      } catch (e) {
+        console.log('Audio context error:', e);
+      }
     }
 
     function vib(p = [40]) {
@@ -667,7 +715,7 @@
       const cfg = {
         inh: +inputs.inh.value, hold1: +inputs.hold1.value, exh: +inputs.exh.value, hold2: +inputs.hold2.value,
         target: +inputs.target.value, countin: +inputs.countin.value,
-        vibrate: toggles.vibrate.checked, sound: toggles.sound.checked, autoflow: toggles.autoflow.checked, music: toggles.music.checked
+        vibrate: toggles.vibrate.checked, sound: toggles.sound.checked
       };
       localStorage.setItem('kumbhaka_cfg', JSON.stringify(cfg));
     }
@@ -677,7 +725,7 @@
         const c = JSON.parse(raw);
         inputs.inh.value = c.inh; inputs.hold1.value = c.hold1; inputs.exh.value = c.exh; inputs.hold2.value = c.hold2;
         inputs.target.value = c.target; inputs.countin.value = c.countin;
-        toggles.vibrate.checked = c.vibrate; toggles.sound.checked = c.sound; toggles.autoflow.checked = c.autoflow; toggles.music.checked = c.music;
+        toggles.vibrate.checked = c.vibrate; toggles.sound.checked = c.sound;
       } catch (_) { }
     }
 
@@ -685,6 +733,9 @@
     const PHASES = ['Inhale', 'Hold', 'Exhale', 'Hold'];
     let schedule = [];
     let iPhase = 0, tRemain = 0, cycles = 0, running = false, tid = null, startedAt = null, elapsedBase = 0;
+    let countdownId = null;
+    let preId = null;        // countdown timeout handle
+    let preRemain = 0;       // countdown seconds remaining
 
     function makeSchedule() {
       const i = +inputs.inh.value, h1 = +inputs.hold1.value, e = +inputs.exh.value, h2 = +inputs.hold2.value;
@@ -700,16 +751,27 @@
       labels.phase.textContent = name;
       const next = schedule[(iPhase + 1) % schedule.length]?.[0] || '—';
       labels.next.textContent = `Next: ${next}`;
-      beep(0.07, 990); vib([60]);
-      if (iPhase === 0) { // new cycle
+
+      // Different beep sounds for different phases - longer and more distinct
+      if (name === 'Inhale') {
+        beep(0.25, 440); // Longer, lower tone for inhale phase change
+      } else if (name === 'Hold') {
+        beep(0.25, 660); // Longer, medium tone for hold phase change
+      } else if (name === 'Exhale') {
+        beep(0.25, 330); // Longer, lowest tone for exhale phase change
+      }
+
+      vib([60]);
+      if (iPhase === 0) { // new cycle starting
         cycles += 1; labels.cycles.textContent = cycles;
-        // Only stop if we've reached the target AND auto mode is OFF
-        if (cycles >= +inputs.target.value && !toggles.autoflow.checked) {
+
+        // Stop when we've completed the target cycles
+        if (cycles > +inputs.target.value) {
           stop(); return;
         }
-        // Show target reached message if in auto mode
-        if (cycles >= +inputs.target.value && toggles.autoflow.checked) {
-          // Optional: You could add a visual indicator here that target was reached
+
+        // Show target reached message when we reach the target
+        if (cycles >= +inputs.target.value) {
           labels.cycles.textContent = cycles + ' ✓';
         }
       }
@@ -719,6 +781,12 @@
       if (!running) return;
       if (tRemain <= 0) { nextPhase(); }
       labels.time.textContent = fmt(tRemain);
+
+      // Add countdown beeps for each second (but not on the last second before phase change)
+      if (tRemain > 1) {
+        beep(0.05, 800); // Short, subtle countdown beep
+      }
+
       tRemain -= 1;
       const elapsed = elapsedBase + ((Date.now() - startedAt) | 0);
       labels.elapsed.textContent = mmss(elapsed / 1000);
@@ -727,48 +795,73 @@
 
     function start() {
       save(); makeSchedule();
-      if (!running) {
-        running = true; startedAt = Date.now();
+      if (running) return;                 // prevent double-start
+      running = true;
+      startedAt = Date.now();
 
-        // Initialize audio if not done already
-        if (!omAudio) initializeAudio();
-
-        // Start Om music if enabled
-        if (toggles.music.checked) {
-          console.log('Starting Om music...');
-          startOmMusic();
-        }
-
-        if (labels.phase.textContent === 'Ready') {
-          const ci = +inputs.countin.value;
-          if (ci > 0) {
-            labels.phase.textContent = 'Get Ready'; tRemain = ci; labels.next.textContent = 'Next: Inhale'; labels.time.textContent = fmt(tRemain);
-            const ciTick = () => {
-              if (!running) return; if (tRemain <= 0) { iPhase = schedule.length - 1; nextPhase(); tick(); return; }
-              beep(0.05, 660); vib([30]);
-              labels.time.textContent = fmt(tRemain); tRemain -= 1; tid = setTimeout(ciTick, 1000);
-            };
-            ciTick(); return;
-          } else { iPhase = schedule.length - 1; nextPhase(); }
-        }
-        tick();
+      // reset counters when starting from Ready/Done
+      if (labels.phase.textContent === 'Ready' || labels.phase.textContent === 'Done') {
+        iPhase = 0; cycles = 0; elapsedBase = 0;
+        labels.cycles.textContent = '0';
       }
-    }
 
-    function pause() {
+      const ci = (+inputs.countin.value) | 0;
+
+      // clear any previous timers
+      if (preId) { clearTimeout(preId); preId = null; }
+      if (countdownId) { clearTimeout(countdownId); countdownId = null; } // (if you had one before)
+      clearTimeout(tid);
+
+      if (ci > 0) {
+        // Show Get Ready countdown using *separate* variables
+        labels.phase.textContent = 'Get Ready';
+        labels.next.textContent = 'Next: Inhale';
+        preRemain = ci;
+        labels.time.textContent = fmt(preRemain);
+
+        // optional first cue
+        beep(0.05, 660); vib([30]);
+
+        const step = () => {
+          if (!running) return;                 // paused/stopped → abort
+          if (preRemain <= 0) {
+            preId = null;
+            // Position so nextPhase() starts at first phase
+            iPhase = schedule.length - 1;
+            nextPhase();
+            tick();                              // start main loop
+            return;
+          }
+
+          labels.time.textContent = fmt(preRemain);
+          beep(0.05, 660); vib([25]);
+          preRemain -= 1;
+          preId = setTimeout(step, 1000);
+        };
+
+        preId = setTimeout(step, 1000);          // start countdown after 1s
+        return;                                   // do NOT start tick() yet
+      }
+
+      // No countdown → start immediately
+      iPhase = schedule.length - 1;
+      nextPhase();
+      tick();
+    } function pause() {
       if (!running) return;
       running = false;
       clearTimeout(tid);
+      if (preId) { clearTimeout(preId); preId = null; }
+      if (countdownId) { clearTimeout(countdownId); countdownId = null; }
       elapsedBase += (Date.now() - startedAt);
       labels.phase.textContent += ' (paused)';
-
-      // Stop music when paused
-      stopOmMusic();
     }
 
     function stop() {
       running = false;
       clearTimeout(tid);
+      if (preId) { clearTimeout(preId); preId = null; }
+      if (countdownId) { clearTimeout(countdownId); countdownId = null; }
       iPhase = 0;
       tRemain = 0;
       labels.phase.textContent = 'Done';
@@ -778,9 +871,6 @@
       if (cycles > 0 && cycles >= +inputs.target.value) {
         playTempleBell();
       }
-
-      // Stop music and save session
-      stopOmMusic();
 
       // Save the completed session
       if (cycles > 0) {
@@ -793,18 +883,14 @@
     function reset() {
       running = false;
       clearTimeout(tid);
-      iPhase = 0;
-      tRemain = 0;
-      cycles = 0;
-      labels.cycles.textContent = '0';
+      if (preId) { clearTimeout(preId); preId = null; }
+      if (countdownId) { clearTimeout(countdownId); countdownId = null; }
+      iPhase = 0; tRemain = 0; cycles = 0; elapsedBase = 0;
       labels.phase.textContent = 'Ready';
       labels.time.textContent = '00';
       labels.next.textContent = '—';
       labels.elapsed.textContent = '00:00';
-      elapsedBase = 0;
-
-      // Stop music when reset
-      stopOmMusic();
+      labels.cycles.textContent = '0';
     }
 
     // Events
@@ -820,25 +906,14 @@
     Object.values(inputs).forEach(inp => inp.addEventListener('change', () => { save(); makeSchedule(); }));
     Object.values(toggles).forEach(inp => inp.addEventListener('change', save));
 
-    // Initialize
-    load();
-    makeSchedule();
-    updateProgressDisplay();
-
-    // Initialize audio immediately since we're using HTML audio elements
-    initializeAudio();
-
-    // Enable audio context on first user interaction
-    let userInteracted = false;
-    function enableAudioContext() {
-      if (!userInteracted) {
-        console.log('User interaction detected - audio context enabled');
-        userInteracted = true;
-      }
-    }
-
-    document.addEventListener('click', enableAudioContext, { once: true });
-    document.addEventListener('touchstart', enableAudioContext, { once: true });
+    // Enable audio on first user click (required by browsers)
+    document.addEventListener('click', async function () {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
+        console.log('✅ User clicked - audio enabled');
+      } catch { }
+    }, { once: true });
   </script>
 </body>
 
